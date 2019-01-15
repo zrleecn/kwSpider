@@ -4,6 +4,7 @@ from urllib.parse import quote
 from lxml import etree
 import redis
 import json
+import zh2pinyin
 
 
 class KwSpider:
@@ -12,11 +13,12 @@ class KwSpider:
     Attributes:
         kw 用户关键字
     """
-    def __init__(self, kw):
+    def __init__(self, kw, city):
         # destination url
-        self.url = "https://sz.58.com/job/"   # 深圳地区
+        self.url = "58.com/job/"
         # keyword
         self.kw = kw
+        self.city = zh2pinyin.main(city)
         # User-Agent list
         self.ua_list = [
             # "User-Agent:Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; .NET4.0C;"
@@ -43,7 +45,7 @@ class KwSpider:
 
         """
         # 中文需要url编码
-        url = url + "pn" + str(page) + "/?final=1&jump=1&key=" + quote(self.kw)
+        url ="https://" + self.city + "." +url + "pn" + str(page) + "/?final=1&jump=1&key=" + quote(self.kw)
         print(url)
         req = request.Request(url)
         # random proxy
@@ -146,7 +148,7 @@ class KwSpider:
         """数据保存到redis 服务器没安装mongodb 先用这redis吧"""
         try:
             redis_client = redis.Redis(host='119.29.204.27', port=9502)
-            flag = redis_client.set(self.kw, json.dumps(self.jobs))
+            flag = redis_client.set(self.city + self.kw, json.dumps(self.jobs))
             if flag:
                 print("保存数据到redis成功")
         except ConnectionRefusedError:
@@ -160,9 +162,10 @@ if __name__ == '__main__':
     if keyword.strip(' ') == '':
         print("please enter a key")
         exit(0)
+    city = input("please enter city like: 北京，广州......：")
 
     print("spider is running....please wait")
-    spider = KwSpider(kw=keyword.strip(" "))
+    spider = KwSpider(city=city, kw=keyword.strip(" "))
     spider.run()
     print("spider is finished")
 
